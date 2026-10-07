@@ -8,7 +8,7 @@ from typing import Any, Protocol
 
 from .catalog import CASE_STUDIES, get_case_study, search_services
 
-ENDPOINT = "https://api.openai.com/v1/responses"
+ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/interactions"
 MAX_ROUNDS = 4
 MAX_CALLS = 8
 
@@ -16,14 +16,12 @@ TOOLS = [
     {
         "type": "function", "name": "search_services",
         "description": "Search the local service catalog for a lead's requested work. Returns matching service IDs and summaries.",
-        "parameters": {"type": "object", "properties": {"query": {"type": "string", "description": "Short search phrase based on the lead's actual needs"}}, "required": ["query"], "additionalProperties": False},
-        "strict": True,
+        "parameters": {"type": "object", "properties": {"query": {"type": "string", "description": "Short search phrase based on the lead's actual needs"}}, "required": ["query"]},
     },
     {
         "type": "function", "name": "get_case_study",
         "description": "Read one factual local case study for a service ID returned by search_services.",
-        "parameters": {"type": "object", "properties": {"service_id": {"type": "string", "description": "Exact service ID from search_services"}}, "required": ["service_id"], "additionalProperties": False},
-        "strict": True,
+        "parameters": {"type": "object", "properties": {"service_id": {"type": "string", "description": "Exact service ID from search_services"}}, "required": ["service_id"]},
     },
 ]
 
@@ -44,23 +42,23 @@ class Transport(Protocol):
     def create(self, payload: dict[str, Any]) -> dict[str, Any]: ...
 
 
-class OpenAITransport:
+class GeminiTransport:
     def __init__(self, *, api_key: str | None = None, model: str | None = None) -> None:
-        self.api_key = api_key or os.getenv("OPENAI_API_KEY")
-        self.model = model or os.getenv("OPENAI_MODEL", "gpt-5.6-terra")
+        self.api_key = api_key or os.getenv("GEMINI_API_KEY")
+        self.model = model or os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
         if not self.api_key:
-            raise AgentError("OPENAI_API_KEY is required")
+            raise AgentError("GEMINI_API_KEY is required")
 
     def create(self, payload: dict[str, Any]) -> dict[str, Any]:
         data = json.dumps({"model": self.model, **payload}).encode("utf-8")
-        request = urllib.request.Request(ENDPOINT, data=data, headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}, method="POST")
+        request = urllib.request.Request(ENDPOINT, data=data, headers={"x-goog-api-key": self.api_key, "Content-Type": "application/json"}, method="POST")
         try:
             with urllib.request.urlopen(request, timeout=60) as response:
                 return json.load(response)
         except urllib.error.HTTPError as exc:
             # Provider error bodies can echo part of a credential or lead data.
-            detail = "check OPENAI_API_KEY" if exc.code == 401 else "request failed; check model access and input"
-            raise AgentError(f"OpenAI API {exc.code}: {detail}") from exc
+            detail = "check GEMINI_API_KEY" if exc.code in (401, 403) else "request failed; check model access and input"
+            raise AgentError(f"Gemini API {exc.code}: {detail}") from exc
         except urllib.error.URLError as exc:
             raise AgentError(f"Network error: {exc.reason}") from exc
 
@@ -83,7 +81,7 @@ def validate_lead(lead: Any) -> dict[str, Any]:
 def _tool_result(call: dict[str, Any], allowed_ids: set[str]) -> dict[str, Any]:
     name = call.get("name")
     try:
-        args = json.loads(call.get("arguments", "{}"))
+        args = call.get("arguments", {})
         if not isinstance(args, dict):
             raise ValueError("arguments must be an object")
         if name == "search_services" and set(args) == {"query"}:
@@ -105,10 +103,10 @@ def _output_text(response: dict[str, Any]) -> str:
     if isinstance(response.get("output_text"), str) and response["output_text"].strip():
         return response["output_text"]
     parts = []
-    for item in response.get("output", []):
-        if item.get("type") == "message":
+    for item in response.get("steps", []):
+        if item.get("type") == "model_output":
             for content in item.get("content", []):
-                if content.get("type") == "output_text":
+                if content.get("type") == "text":
                     parts.append(content.get("text", ""))
     return "\n".join(parts)
 
@@ -136,11 +134,9 @@ def _validate_answer(answer: Any, consulted: set[str]) -> dict[str, Any]:
 def qualify_lead(lead: Any, transport: Transport) -> dict[str, Any]:
     clean_lead = validate_lead(lead)
     payload: dict[str, Any] = {
-        "instructions": INSTRUCTIONS,
-        "input": [{"role": "user", "content": "Qualify this lead and draft a reply for review:\n" + json.dumps(clean_lead, ensure_ascii=False)}],
+        "system_instruction": INSTRUCTIONS,
+        "input": "Qualify this lead and draft a reply for review:\n" + json.dumps(clean_lead, ensure_ascii=False),
         "tools": TOOLS,
-        "tool_choice": "auto",
-        "store": True,
     }
     allowed_ids: set[str] = set()
     consulted: set[str] = set()
@@ -148,7 +144,7 @@ def qualify_lead(lead: Any, transport: Transport) -> dict[str, Any]:
     call_count = 0
     for _ in range(MAX_ROUNDS + 1):
         response = transport.create(payload)
-        calls = [item for item in response.get("output", []) if item.get("type") == "function_call"]
+        calls = [item for item in response.get("steps", []) if item.get("type") == "function_call"]
         if not calls:
             if not audit or not any(item["tool"] == "search_services" and item["ok"] for item in audit):
                 raise AgentError("model did not search the service catalog")
@@ -161,16 +157,16 @@ def qualify_lead(lead: Any, transport: Transport) -> dict[str, Any]:
         if call_count + len(calls) > MAX_CALLS:
             raise AgentError("tool call limit reached")
         if not response.get("id"):
-            raise AgentError("model response has no id for tool continuation")
+            raise AgentError("Gemini interaction has no id for tool continuation")
         outputs = []
         for call in calls:
             call_count += 1
-            if not call.get("call_id"):
-                raise AgentError("tool call has no call_id")
+            if not call.get("id"):
+                raise AgentError("tool call has no id")
             result = _tool_result(call, allowed_ids)
             if call.get("name") == "get_case_study" and result["ok"]:
                 consulted.add(result["result"]["service_id"])
             audit.append({"tool": call.get("name", "unknown"), "ok": result["ok"]})
-            outputs.append({"type": "function_call_output", "call_id": call["call_id"], "output": json.dumps(result)})
-        payload = {"instructions": INSTRUCTIONS, "input": outputs, "previous_response_id": response["id"], "tools": TOOLS, "tool_choice": "auto", "store": True}
+            outputs.append({"type": "function_result", "name": call.get("name"), "call_id": call["id"], "result": [{"type": "text", "text": json.dumps(result)}]})
+        payload = {"system_instruction": INSTRUCTIONS, "input": outputs, "previous_interaction_id": response["id"], "tools": TOOLS}
     raise AgentError("tool round limit reached")

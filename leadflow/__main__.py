@@ -5,7 +5,7 @@ import json
 import sys
 from pathlib import Path
 
-from .agent import AgentError, OpenAITransport, qualify_lead
+from .agent import AgentError, GeminiTransport, qualify_lead
 
 
 def main() -> int:
@@ -14,7 +14,7 @@ def main() -> int:
     args = parser.parse_args()
     try:
         lead = json.loads(args.lead.read_text(encoding="utf-8"))
-        result = qualify_lead(lead, OpenAITransport())
+        result = qualify_lead(lead, GeminiTransport())
     except (OSError, ValueError, AgentError) as exc:
         print(f"LeadFlow error: {exc}", file=sys.stderr)
         return 1
