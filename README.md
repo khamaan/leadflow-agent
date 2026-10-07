@@ -39,7 +39,16 @@ python -m leadflow examples/sample_lead.json
 
 If your Python command is `py`, use `py -3 -m leadflow examples/sample_lead.json` instead. The command makes Gemini API calls. It should print a JSON result with a recommendation, a matched service, evidence, questions, a draft reply, and `tool_audit`. Review the draft before using it.
 
-4. To try your own lead, copy `examples/sample_lead.json`, replace the sample fields, and pass its path to the same command. Do not commit real lead data or your key.
+4. To try your own lead, make a private local copy, edit the fields, and run it:
+
+```powershell
+New-Item -ItemType Directory -Path leads -Force | Out-Null
+Copy-Item examples/sample_lead.json leads/my_lead.json
+notepad leads/my_lead.json
+python -m leadflow leads/my_lead.json
+```
+
+The `leads/` directory is ignored by Git. Do not commit real lead data or your key.
 
 5. Run the local tests (no API key or network needed):
 
