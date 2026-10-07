@@ -40,6 +40,15 @@ class LeadFlowTests(unittest.TestCase):
         self.assertEqual([x["tool"] for x in result["tool_audit"]], ["search_services", "get_case_study"])
         self.assertEqual(fake.payloads[1]["previous_interaction_id"], "r1")
         self.assertEqual(fake.payloads[1]["input"][0]["call_id"], "c1")
+        self.assertEqual(fake.payloads[2]["response_format"]["mime_type"], "application/json")
+
+    def test_accepts_fenced_json_after_tool_calls(self):
+        answer = '{"recommendation":"clarify","service_id":null,"confidence":"low","reason":"Need scope","evidence":[],"questions":["How many users?"],"draft_reply":"Hi, how many users need access?"}'
+        fake = FakeTransport([
+            {"id": "r1", "steps": [call("c1", "search_services", {"query": "CRM"})]},
+            {"id": "r2", "steps": [{"type": "model_output", "content": [{"type": "text", "text": "```json\n" + answer + "\n```"}]}]},
+        ])
+        self.assertEqual(qualify_lead(LEAD, fake)["recommendation"], "clarify")
 
     def test_cannot_claim_unconsulted_case_study(self):
         answer = '{"recommendation":"pursue","service_id":"crm-automation","confidence":"high","reason":"x","evidence":[],"questions":[],"draft_reply":"Hi"}'
@@ -71,18 +80,18 @@ class LeadFlowTests(unittest.TestCase):
         self.assertEqual(request.full_url, ENDPOINT)
         self.assertEqual(request.get_header("X-goog-api-key"), "test-key")
         self.assertEqual(json.loads(request.data)["model"], "gemini-test")
-        self.assertTrue(json.loads(request.data)["background"])
+        self.assertNotIn("background", json.loads(request.data))
         self.assertEqual(result["id"], "test")
 
-    def test_background_interaction_polls_until_complete(self):
-        transport = GeminiTransport(api_key="test-key")
-        responses = iter([{"id": "abc", "status": "in_progress"},
-                          {"id": "abc", "status": "completed", "steps": []}])
-        with patch.object(transport, "_request", side_effect=lambda *a, **k: next(responses)) as request, \
-             patch("leadflow.agent.time.sleep"):
+    def test_foreground_request_reports_waiting_and_uses_single_post(self):
+        events = []
+        transport = GeminiTransport(api_key="test-key", on_event=events.append)
+        with patch.object(transport, "_request", return_value={"id": "abc", "status": "completed"}) as request:
             result = transport.create({"input": "hello"})
-        self.assertEqual(result["status"], "completed")
-        self.assertEqual(request.call_args_list[1].args[0], f"{ENDPOINT}/abc")
+        self.assertEqual(result["id"], "abc")
+        request.assert_called_once()
+        self.assertEqual(request.call_args.kwargs["method"], "POST")
+        self.assertEqual(events[0]["type"], "waiting")
 
 
 if __name__ == "__main__":

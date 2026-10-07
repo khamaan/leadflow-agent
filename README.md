@@ -15,9 +15,9 @@ Built from scratch with **Codex** as the AI coding collaborator. The runtime age
 
 Keep the launcher window open while using the app; close it to stop the local server. The server listens only on `127.0.0.1`. The key is used for the current run and is not written to a project file or browser storage. You may alternatively set `GEMINI_API_KEY` in the environment before starting the server, then leave the key field empty.
 
-If the launcher cannot find Python, open PowerShell in this folder and run `py -3 -m leadflow.web`. On Linux/macOS, run `python3 -m leadflow.web`. The default model is `gemini-3.8-flash`; set `GEMINI_MODEL` in the server environment if your key needs another compatible Gemini model.
+If the launcher cannot find Python, open PowerShell in this folder and run `py -3 -m leadflow.web`. On Linux/macOS, run `python3 -m leadflow.web`. The default model is the faster `gemini-3.5-flash-lite`; set `GEMINI_MODEL` in the server environment if your key needs another compatible Gemini model.
 
-Gemini calls can take a few minutes. The app starts each interaction in background mode and polls for progress, so a long model step no longer depends on one 60-second HTTP connection. An individual connection or a five-minute model step can still fail if the network or provider is unavailable. The UI will show the error.
+Gemini calls can take a few minutes. The app uses a foreground interaction with a four-minute read timeout for each model step. The browser remains responsive and shows the current step while the server waits. This avoids a current Gemini background-status retrieval error; a slow or unavailable provider can still cause a timeout, which the UI will show.
 
 ## What makes it agentic
 
@@ -39,5 +39,5 @@ python -m unittest discover -s tests -v
 
 The CLI uses `GEMINI_API_KEY` from the environment. Tests use fake Gemini responses and do not need a key or network access. The `leads/` folder is ignored by Git for private local input files.
 
-API design follows the [Gemini function calling guide](https://ai.google.dev/gemini-api/docs/function-calling/) and [background execution guide](https://ai.google.dev/gemini-api/docs/background-execution/).
+API design follows the [Gemini function calling guide](https://ai.google.dev/gemini-api/docs/function-calling/).
 

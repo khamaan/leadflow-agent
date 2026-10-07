@@ -58,7 +58,7 @@ class Handler(BaseHTTPRequestHandler):
             self._file("app.js", "text/javascript; charset=utf-8")
         elif self.path == "/api/config":
             self._json(200, {"key_configured": bool(os.getenv("GEMINI_API_KEY")),
-                             "model": os.getenv("GEMINI_MODEL", "gemini-3.8-flash")})
+                             "model": os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")})
         elif self.path.startswith("/api/jobs/"):
             job_id = self.path.removeprefix("/api/jobs/")
             with LOCK:
