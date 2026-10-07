@@ -112,7 +112,7 @@ def main() -> None:
     args = parser.parse_args()
     server = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
     url = f"http://127.0.0.1:{server.server_port}"
-    print(f"LeadFlow is running at {url} — close this window to stop it", flush=True)
+    print(f"LeadFlow is running at {url} | close this window to stop it", flush=True)
     if not args.no_browser:
         threading.Timer(0.6, lambda: webbrowser.open(url)).start()
     try:

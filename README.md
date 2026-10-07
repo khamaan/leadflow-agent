@@ -17,7 +17,7 @@ Keep the launcher window open while using the app; close it to stop the local se
 
 If the launcher cannot find Python, open PowerShell in this folder and run `py -3 -m leadflow.web`. On Linux/macOS, run `python3 -m leadflow.web`. The default model is `gemini-3.8-flash`; set `GEMINI_MODEL` in the server environment if your key needs another compatible Gemini model.
 
-Gemini calls can take a few minutes. The app starts each interaction in background mode and polls for progress, so a long model step no longer depends on one 60-second HTTP connection. An individual connection or the overall five-minute run can still fail if the network or provider is unavailable. The UI will show the error.
+Gemini calls can take a few minutes. The app starts each interaction in background mode and polls for progress, so a long model step no longer depends on one 60-second HTTP connection. An individual connection or a five-minute model step can still fail if the network or provider is unavailable. The UI will show the error.
 
 ## What makes it agentic
 
@@ -40,3 +40,4 @@ python -m unittest discover -s tests -v
 The CLI uses `GEMINI_API_KEY` from the environment. Tests use fake Gemini responses and do not need a key or network access. The `leads/` folder is ignored by Git for private local input files.
 
 API design follows the [Gemini function calling guide](https://ai.google.dev/gemini-api/docs/function-calling/) and [background execution guide](https://ai.google.dev/gemini-api/docs/background-execution/).
+
