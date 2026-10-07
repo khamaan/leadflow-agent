@@ -174,4 +174,3 @@ def qualify_lead(lead: Any, transport: Transport) -> dict[str, Any]:
             outputs.append({"type": "function_call_output", "call_id": call["call_id"], "output": json.dumps(result)})
         payload = {"instructions": INSTRUCTIONS, "input": outputs, "previous_response_id": response["id"], "tools": TOOLS, "tool_choice": "auto", "store": True}
     raise AgentError("tool round limit reached")
-

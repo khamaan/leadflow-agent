@@ -56,4 +56,3 @@ def get_case_study(service_id: str) -> dict[str, str]:
     if service_id not in CASE_STUDIES:
         raise ValueError("unknown service_id")
     return {"service_id": service_id, **CASE_STUDIES[service_id]}
-

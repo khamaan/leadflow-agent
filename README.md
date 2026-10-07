@@ -56,4 +56,3 @@ The CLI prints JSON with `recommendation`, `service_id`, `confidence`, `reason`,
 - Tests use a fake model transport, so they run without a key or network access.
 
 API design follows the [official OpenAI function calling guide](https://developers.openai.com/api/docs/guides/function-calling).
-
