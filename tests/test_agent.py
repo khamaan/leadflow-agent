@@ -71,7 +71,18 @@ class LeadFlowTests(unittest.TestCase):
         self.assertEqual(request.full_url, ENDPOINT)
         self.assertEqual(request.get_header("X-goog-api-key"), "test-key")
         self.assertEqual(json.loads(request.data)["model"], "gemini-test")
+        self.assertTrue(json.loads(request.data)["background"])
         self.assertEqual(result["id"], "test")
+
+    def test_background_interaction_polls_until_complete(self):
+        transport = GeminiTransport(api_key="test-key")
+        responses = iter([{"id": "abc", "status": "in_progress"},
+                          {"id": "abc", "status": "completed", "steps": []}])
+        with patch.object(transport, "_request", side_effect=lambda *a, **k: next(responses)) as request, \
+             patch("leadflow.agent.time.sleep"):
+            result = transport.create({"input": "hello"})
+        self.assertEqual(result["status"], "completed")
+        self.assertEqual(request.call_args_list[1].args[0], f"{ENDPOINT}/abc")
 
 
 if __name__ == "__main__":

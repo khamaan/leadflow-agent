@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LeadFlow Agent — AI lead desk</title>
+  <link rel="stylesheet" href="/app.css">
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark">↗</span><span>LeadFlow <b>Agent</b></span></div>
+      <div class="top-right"><span class="live-dot"></span> LOCAL WORKSPACE <span class="divider"></span> <span id="model-name">Gemini</span></div>
+    </header>
+    <main>
+      <section class="hero">
+        <div class="eyebrow"><span class="eyebrow-line"></span> YOUR AI LEAD DESK</div>
+        <h1>From enquiry to<br><em>next action.</em></h1>
+        <p>Give the agent a lead. Watch it research your services, check a relevant case study, and prepare a reply for your review.</p>
+      </section>
+      <div class="workspace">
+        <section class="panel input-panel">
+          <div class="panel-head"><div><span class="step">01 / INPUT</span><h2>New enquiry</h2></div><button id="sample" class="text-button" type="button">Load example ↗</button></div>
+          <form id="lead-form">
+            <div class="two-cols">
+              <label>Contact name <span>*</span><input name="name" autocomplete="name" required maxlength="120" placeholder="e.g. Priya Shah"></label>
+              <label>Company <span>*</span><input name="company" autocomplete="organization" required maxlength="120" placeholder="e.g. BrightPath Academy"></label>
+            </div>
+            <label>Email <span class="optional">OPTIONAL</span><input name="email" type="email" autocomplete="email" maxlength="320" placeholder="priya@company.com"></label>
+            <label>What do they need? <span>*</span><textarea name="message" required maxlength="4000" rows="5" placeholder="Paste the enquiry or describe the project requirements..."></textarea></label>
+            <div class="two-cols">
+              <label>Budget in INR <span class="optional">OPTIONAL</span><input name="budget_inr" type="number" min="0" step="1" placeholder="e.g. 250000"></label>
+              <label>Timeline in weeks <span class="optional">OPTIONAL</span><input name="timeline_weeks" type="number" min="0" step="1" placeholder="e.g. 8"></label>
+            </div>
+            <div class="key-row"><label>Gemini API key <span class="optional">IF NOT SET IN ENVIRONMENT</span><input name="api_key" type="password" autocomplete="off" placeholder="Paste key for this run only"></label><p id="key-hint">Your key is used for this run and is not saved to disk or browser storage.</p></div>
+            <button id="run-button" class="run-button" type="submit"><span>Run agent</span><span>↗</span></button>
+            <p id="form-error" class="form-error" role="alert" hidden></p>
+          </form>
+        </section>
+        <section class="panel output-panel">
+          <div class="panel-head"><div><span class="step">02 / AGENT RUN</span><h2>Research & response</h2></div><span id="status-badge" class="badge idle">READY</span></div>
+          <div id="empty-state" class="empty-state"><div class="orbit"><span>✦</span></div><h3>Ready when you are</h3><p>Enter an enquiry to see the agent’s decisions, tool calls, and drafted reply here.</p></div>
+          <div id="run-view" hidden>
+            <div class="activity"><div class="section-label">LIVE ACTIVITY <span id="activity-count">0 STEPS</span></div><ol id="events" aria-live="polite"></ol></div>
+            <div id="result-view" hidden>
+              <div class="result-summary"><div><div class="section-label">RECOMMENDATION</div><h3 id="recommendation"></h3></div><span id="confidence" class="confidence"></span></div>
+              <p id="reason" class="reason"></p>
+              <div id="service" class="service"></div>
+              <div class="result-detail"><div><div class="section-label">EVIDENCE</div><ul id="evidence"></ul></div><div><div class="section-label">QUESTIONS TO ASK</div><ul id="questions"></ul></div></div>
+              <div class="draft-head"><div class="section-label">DRAFT REPLY · HUMAN REVIEW REQUIRED</div><button id="copy" class="text-button" type="button">Copy draft ↗</button></div>
+              <div id="draft" class="draft"></div>
+              <p class="review-note">Review facts, scope, and wording before sending. LeadFlow never contacts the lead automatically.</p>
+            </div>
+          </div>
+        </section>
+      </div>
+      <footer><span>BUILT WITH CODEX · POWERED BY GEMINI</span><span>READ-ONLY TOOLS · HUMAN APPROVAL</span></footer>
+    </main>
+  </div>
+  <script src="/app.js" defer></script>
+</body>
+</html>
