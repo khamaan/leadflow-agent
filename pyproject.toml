@@ -1,0 +1,9 @@
+[project]
+name = "leadflow-agent"
+version = "0.1.0"
+description = "Read-only agentic AI assistant for CRM lead qualification and follow-up drafts"
+requires-python = ">=3.11"
+
+[tool.setuptools]
+packages = ["leadflow"]
+
